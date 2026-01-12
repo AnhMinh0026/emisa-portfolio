@@ -22,9 +22,10 @@ const useInfiniteImages = (category, limit = 10) => {
         setImages([]);
         setCursor(null);
         
+        const API_URL = import.meta.env.VITE_API_URL;
         const url = category 
-          ? `http://localhost:5000/api/images?category=${category}&limit=${limit}`
-          : `http://localhost:5000/api/images?limit=${limit}`;
+          ? `${API_URL}/api/images?category=${category}&limit=${limit}`
+          : `${API_URL}/api/images?limit=${limit}`;
           
         const response = await axios.get(url);
         
@@ -54,9 +55,10 @@ const useInfiniteImages = (category, limit = 10) => {
     try {
       setLoadingMore(true);
       
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       let url = category 
-        ? `http://localhost:5000/api/images?category=${category}&limit=${limit}`
-        : `http://localhost:5000/api/images?limit=${limit}`;
+        ? `${API_URL}/api/images?category=${category}&limit=${limit}`
+        : `${API_URL}/api/images?limit=${limit}`;
       
       if (cursor) {
         url += `&cursor=${cursor}`;
