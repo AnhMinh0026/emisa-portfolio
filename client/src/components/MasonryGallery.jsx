@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import "yet-another-react-lightbox/styles.css";
 import { optimizeCloudinaryUrl } from "../utils/cloudinary";
 
 const MasonryGallery = ({
@@ -9,7 +12,8 @@ const MasonryGallery = ({
   hasMore,
   onLoadMore,
 }) => {
-  const [selectedId, setSelectedId] = useState(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const loadMoreRef = useRef(null);
 
   // Intersection Observer for infinite scroll
@@ -50,17 +54,28 @@ const MasonryGallery = ({
     );
   }
 
+  // Prepare slides for lightbox
+  const slides = images.map((image) => ({
+    src: optimizeCloudinaryUrl(image.url, 1920, 90),
+    alt: image.id,
+  }));
+
+  const handleImageClick = (index) => {
+    setCurrentIndex(index);
+    setLightboxOpen(true);
+  };
+
   return (
     <>
-      <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 p-4">
-        {images.map((image) => (
+      <div className="columns-2 md:columns-2 lg:columns-3 gap-6 space-y-6 p-4">
+        {images.map((image, index) => (
           <motion.div
             key={image.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="break-inside-avoid relative group cursor-zoom-in overflow-hidden"
-            onClick={() => setSelectedId(image.id)}
+            className="break-inside-avoid relative group overflow-hidden cursor-zoom-in"
+            onClick={() => handleImageClick(index)}
           >
             <img
               src={optimizeCloudinaryUrl(image.url, 600, 85)}
@@ -83,39 +98,48 @@ const MasonryGallery = ({
         </div>
       )}
 
-      <AnimatePresence>
-        {selectedId && (
-          <Modal
-            selectedId={selectedId}
-            images={images}
-            onClose={() => setSelectedId(null)}
-          />
-        )}
-      </AnimatePresence>
-    </>
-  );
-};
-
-const Modal = ({ selectedId, images, onClose }) => {
-  const image = images.find((img) => img.id === selectedId);
-  if (!image) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-      className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out"
-    >
-      <motion.img
-        layoutId={selectedId}
-        src={optimizeCloudinaryUrl(image.url, 1920, 90)}
-        alt={image.id}
-        className="max-h-[90vh] max-w-[90vw] object-contain shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      {/* Lightbox */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        index={currentIndex}
+        slides={slides}
+        plugins={[Zoom]}
+        zoom={{
+          maxZoomPixelRatio: 3,
+          scrollToZoom: true,
+        }}
+        styles={{
+          container: { backgroundColor: "rgb(255, 255, 255)" },
+          toolbar: {
+            backgroundColor: "rgba(65, 62, 62, 0.77)",
+            padding: "12px 16px",
+            // borderRadius: "8px",
+          },
+          button: {
+            filter: "none",
+          },
+          navigationPrev: {
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            borderRadius: "8px",
+            padding: "8px",
+            marginLeft: "8px",
+          },
+          navigationNext: {
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            borderRadius: "8px",
+            padding: "8px",
+            marginRight: "8px",
+          },
+          icon: {
+            color: "#ffffff",
+          },
+        }}
+        controller={{
+          closeOnBackdropClick: false,
+        }}
       />
-    </motion.div>
+    </>
   );
 };
 

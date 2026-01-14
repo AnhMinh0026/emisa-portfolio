@@ -39,26 +39,34 @@ const Home = () => {
             LOADING GALLERY...
           </div>
         ) : (
-          <div className="w-full h-full overflow-hidden group">
-            <div
-              className="flex space-x-6 animate-scroll"
-              style={{ width: "max-content" }}
-            >
-              {carouselImages.map((img, index) => (
-                <div
-                  key={`${img.id}-${index}`}
-                  className="flex-shrink-0 h-[calc(100vh-9rem)] w-[65vh] overflow-hidden cursor-zoom-in"
-                  onClick={() => setSelectedId(img.id)}
-                >
-                  <img
-                    src={optimizeCloudinaryUrl(img.url, 800, 85)}
-                    alt="Portfolio"
-                    className="w-full h-full object-cover transition-transform duration-1000 ease-in-out hover:scale-110"
-                  />
-                </div>
-              ))}
+          <>
+            {/* Desktop: Horizontal Scroll */}
+            <div className="hidden md:block w-full h-full overflow-hidden group">
+              <div
+                className="flex space-x-2 animate-scroll"
+                style={{ width: "max-content" }}
+              >
+                {carouselImages.map((img, index) => (
+                  <div
+                    key={`${img.id}-${index}`}
+                    className="flex-shrink-0 h-[calc(100vh-9rem)] w-[65vh] overflow-hidden cursor-zoom-in"
+                    onClick={() => setSelectedId(img.id)}
+                  >
+                    <img
+                      src={optimizeCloudinaryUrl(img.url, 800, 85)}
+                      alt="Portfolio"
+                      className="w-full h-full object-cover transition-transform duration-1000 ease-in-out hover:scale-110"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+
+            {/* Mobile: Elegant Fade Carousel */}
+            <div className="md:hidden w-full h-[calc(100vh-9rem)]">
+              <FadeCarousel images={images} onImageClick={setSelectedId} />
+            </div>
+          </>
         )}
       </main>
 
@@ -174,27 +182,27 @@ const WelcomeModal = ({ onClose }) => {
             <p className="text-base md:text-lg">
               Mỗi danh mục{" "}
               <span className="text-luxury-black font-medium">
-                (Beauty, Bridal, Event, Editorial, Fashion)
+                (Beauty, Bridal, Event, Fashion,...)
               </span>{" "}
               thể hiện một phong cách makeup khác nhau, giúp bạn dễ dàng tham
-              khảo và lựa chọn mà không cần chờ Emisa gửi ảnh thủ công.
+              khảo và lựa chọn mà không cần chờ Emisa gửi ảnh.
             </p>
 
             <div className="bg-gray-50 p-6 rounded-lg mt-6">
               <p className="text-base font-medium text-luxury-black mb-3">
-                Vui lòng liên hệ trực tiếp nếu bạn cần:
+                Vui lòng liên hệ trực tiếp:
               </p>
               <ul className="space-y-2 text-sm md:text-base list-disc list-inside text-gray-600">
-                <li>Tư vấn layout phù hợp với gương mặt và concept</li>
+                <li>Tư vấn layout phù hợp</li>
                 <li>Báo giá theo yêu cầu riêng</li>
-                <li>Lịch makeup ngoài giờ hoặc ngoài khu vực</li>
+                <li>Lịch makeup ngoài giờ</li>
               </ul>
             </div>
 
             {/* Contact Info */}
             <div className="border-t border-gray-200 pt-6 mt-6 space-y-3">
               <div className="flex items-center justify-center gap-2 text-base ">
-                <span className="text-gray-500">SDT:</span>
+                <span className="text-gray-500">SDT / ZALO:</span>
                 <a
                   href="tel:0961073839"
                   className="text-luxury-black font-medium hover:opacity-60 transition-opacity"
@@ -203,7 +211,7 @@ const WelcomeModal = ({ onClose }) => {
                 </a>
               </div>
               <div className="flex items-center justify-center gap-2 text-base">
-                <span className="text-gray-500">Facebook:</span>
+                <span className="text-gray-500">FACEBOOK:</span>
                 <a
                   href="https://www.facebook.com/ngan071004"
                   target="_blank"
@@ -218,6 +226,55 @@ const WelcomeModal = ({ onClose }) => {
         </div>
       </motion.div>
     </motion.div>
+  );
+};
+
+// Elegant Fade Carousel for Mobile
+const FadeCarousel = ({ images, onImageClick }) => {
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+
+  // Auto-advance every 4 seconds
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 6000);
+
+    return () => clearInterval(timer);
+  }, [images.length]);
+
+  return (
+    <div className="relative w-full h-full">
+      {/* Images with fade transition */}
+      {images.map((img, index) => (
+        <motion.div
+          key={img.id}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: index === currentIndex ? 1 : 0 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+          className="absolute inset-0 cursor-pointer"
+          onClick={() => onImageClick(img.id)}
+          style={{ pointerEvents: index === currentIndex ? "auto" : "none" }}
+        >
+          <img
+            src={optimizeCloudinaryUrl(img.url, 800, 85)}
+            alt="Portfolio"
+            className="w-full h-full object-cover"
+          />
+        </motion.div>
+      ))}
+
+      {/* Minimal dots indicator */}
+      <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2 z-10">
+        {images.slice(0, 10).map((_, index) => (
+          <div
+            key={index}
+            className={`h-1 rounded-full transition-all duration-500 ${
+              index === currentIndex % 10 ? "w-6 bg-white" : "w-1 bg-white/40"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
   );
 };
 

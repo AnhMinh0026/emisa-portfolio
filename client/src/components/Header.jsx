@@ -44,6 +44,7 @@ const Header = () => {
               `}
             >
               <div className="bg-white border border-gray-100 shadow-xl p-6 min-w-[200px] flex flex-col space-y-4 text-center">
+                <DropdownLink to="/gallery/all" label="All Layout" />
                 <DropdownLink to="/gallery/beauty" label="Beauty" />
                 <DropdownLink to="/gallery/bridal" label="Bridal" />
                 <DropdownLink to="/gallery/event" label="Event" />
@@ -134,6 +135,12 @@ const Header = () => {
                 isMobileWorkOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
+              <MobileNavLink
+                to="/gallery/all"
+                label="All Layout"
+                currentPath={location.pathname}
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
               <MobileNavLink
                 to="/gallery/beauty"
                 label="Beauty"

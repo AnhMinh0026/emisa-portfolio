@@ -22,8 +22,8 @@ const Contact = () => {
 
           {/* Introduction */}
           <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto">
-            Để đặt lịch hoặc tư vấn về dịch vụ makeup, vui lòng liên hệ qua
-            Facebook hoặc Zalo.
+            Để đặt lịch hoặc tư vấn về dịch vụ makeup, bạn vui lòng liên hệ qua
+            Facebook hoặc Zalo bằng cách nhấn vào link bên dưới.
           </p>
 
           {/* Contact Methods */}
@@ -64,7 +64,7 @@ const Contact = () => {
                 Địa Chỉ
               </p>
               <p className="text-base text-luxury-black leading-relaxed">
-                78B/4 Cây Keo, Tam Phú
+                78/4B Cây Keo, Tam Phú
                 <br />
                 Thủ Đức, TP Hồ Chí Minh
               </p>

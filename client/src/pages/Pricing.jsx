@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import { motion } from "framer-motion";
 
@@ -12,22 +13,22 @@ const Pricing = () => {
     {
       name: "Shooting",
       price: "500.000đ - 600.000đ",
-      description: " Outside: 600.000đ • Indoor: 500.000đ",
+      description: "Makeup chụp hình studio & ngoại cảnh",
     },
     {
       name: "LookBook - Special Concept",
       price: "600.000đ - 1.000.000đ",
-      description: " Concept đặc biệt",
+      description: "Makeup theo concept riêng",
     },
     {
       name: "Make up Party - Event",
       price: "500.000đ - 2.000.000đ",
-      description: " Sự kiện, tiệc",
+      description: "Makeup dự tiệc, sự kiện, gala, chương trình biểu diễn",
     },
     {
       name: "Tốt nghiệp - Kỷ yếu - Bưng quả",
       price: "400.000đ",
-      description: " Makeup học sinh, sinh viên",
+      description: "Makeup cho lễ tốt nghiệp, chụp ảnh kỷ yếu, bưng quả",
     },
   ];
 
@@ -71,10 +72,10 @@ const Pricing = () => {
 
           <div className="pt-16 text-sm text-gray-600 space-y-3">
             <p className="text-base">
-              • Hỗ trợ làm tóc cơ bản - yêu cầu tóc đặc biệt ib mình nhé
+              Hỗ trợ làm tóc cơ bản - yêu cầu tóc đặc biệt ib mình nhé
             </p>
             <p className="text-base">
-              • Khách hàng có tình trạng da đặc biệt ib mình tư vấn thêm nhé
+              Khách hàng có tình trạng da đặc biệt ib mình tư vấn thêm nhé
             </p>
             <p className="pt-4 text-lg font-semibold text-luxury-black">
               LƯU Ý:
@@ -84,7 +85,7 @@ const Pricing = () => {
               coffee)
             </p>
             <p className="mt-6 text-base text-luxury-black font-medium underline cursor-pointer hover:opacity-70">
-              <a href="/contact">Liên hệ đặt lịch</a>
+              <Link to="/contact">Liên hệ đặt lịch</Link>
             </p>
           </div>
         </motion.div>

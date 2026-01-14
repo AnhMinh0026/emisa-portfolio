@@ -7,8 +7,11 @@ import { motion } from "framer-motion";
 
 const Gallery = () => {
   const { category } = useParams();
+  const actualCategory = category === "all" ? undefined : category;
   const { images, loading, loadingMore, error, hasMore, loadMore } =
-    useInfiniteImages(category, 10);
+    useInfiniteImages(actualCategory, 10);
+
+  const displayTitle = category === "all" ? "All Layout" : category;
 
   return (
     <div className="min-h-screen bg-white">
@@ -21,7 +24,7 @@ const Gallery = () => {
           className="mb-12 text-center"
         >
           <h2 className="text-4xl md:text-5xl font-serif text-luxury-black uppercase tracking-wide">
-            {category}
+            {displayTitle}
           </h2>
         </motion.div>
 
