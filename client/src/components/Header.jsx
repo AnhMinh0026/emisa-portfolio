@@ -43,13 +43,25 @@ const Header = () => {
                 }
               `}
             >
-              <div className="bg-white border border-gray-100 shadow-xl p-6 min-w-[200px] flex flex-col space-y-4 text-center">
-                <DropdownLink to="/gallery/all" label="All Layout" />
-                <DropdownLink to="/gallery/beauty" label="Beauty" />
-                <DropdownLink to="/gallery/bridal" label="Bridal" />
-                <DropdownLink to="/gallery/event" label="Event" />
-                <DropdownLink to="/gallery/fashion" label="Fashion" />
-                <DropdownLink to="/gallery/editorial" label="Editorial" />
+              <div className="bg-white border border-gray-100 shadow-xl p-6 min-w-[400px] flex flex-col space-y-4 text-center">
+                <DropdownLink to="/gallery/beauty" label="Trang điểm cá nhân" />
+                <DropdownLink to="/gallery/bridal" label="Trang điểm Cô dâu" />
+                <DropdownLink
+                  to="/gallery/event"
+                  label="Trang điểm Sự kiện – Dạ tiệc"
+                />
+                <DropdownLink
+                  to="/gallery/commercial"
+                  label="Trang điểm Thương mại – Truyền thông"
+                />
+                <DropdownLink
+                  to="/gallery/lookbook"
+                  label="Trang điểm Lookbook – Concept"
+                />
+                <DropdownLink
+                  to="/gallery/graduation"
+                  label="Trang điểm Tốt nghiệp – Kỷ yếu"
+                />
               </div>
             </div>
           </div>
@@ -57,12 +69,12 @@ const Header = () => {
           {/* Normal Links */}
           <NavLink
             to="/pricing"
-            label="Pricing"
+            label="Bảng giá"
             currentPath={location.pathname}
           />
           <NavLink
             to="/contact"
-            label="Contact"
+            label="Liên hệ"
             currentPath={location.pathname}
           />
         </nav>
@@ -111,7 +123,7 @@ const Header = () => {
               onClick={() => setIsMobileWorkOpen(!isMobileWorkOpen)}
               className="flex items-center justify-between text-sm tracking-widest uppercase text-gray-500 transition-colors duration-300"
             >
-              <span>Work</span>
+              <span>Layout Makeup</span>
               <svg
                 className={`w-4 h-4 transition-transform duration-300 ${
                   isMobileWorkOpen ? "rotate-180" : ""
@@ -132,42 +144,42 @@ const Header = () => {
             {/* Submenu */}
             <div
               className={`flex flex-col space-y-3 pl-4 mt-3 overflow-hidden transition-all duration-300 ${
-                isMobileWorkOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                isMobileWorkOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
               <MobileNavLink
-                to="/gallery/all"
-                label="All Layout"
-                currentPath={location.pathname}
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <MobileNavLink
                 to="/gallery/beauty"
-                label="Beauty"
+                label="Trang điểm cá nhân"
                 currentPath={location.pathname}
                 onClick={() => setIsMobileMenuOpen(false)}
               />
               <MobileNavLink
                 to="/gallery/bridal"
-                label="Bridal"
+                label="Trang điểm Cô dâu"
                 currentPath={location.pathname}
                 onClick={() => setIsMobileMenuOpen(false)}
               />
               <MobileNavLink
                 to="/gallery/event"
-                label="Event"
+                label="Trang điểm Sự kiện – Dạ tiệc"
                 currentPath={location.pathname}
                 onClick={() => setIsMobileMenuOpen(false)}
               />
               <MobileNavLink
-                to="/gallery/editorial"
-                label="Editorial"
+                to="/gallery/commercial"
+                label="Trang điểm Thương mại – Truyền thông"
                 currentPath={location.pathname}
                 onClick={() => setIsMobileMenuOpen(false)}
               />
               <MobileNavLink
-                to="/gallery/fashion"
-                label="Fashion"
+                to="/gallery/lookbook"
+                label="Trang điểm Lookbook – Concept"
+                currentPath={location.pathname}
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              <MobileNavLink
+                to="/gallery/graduation"
+                label="Trang điểm Tốt nghiệp – Kỷ yếu"
                 currentPath={location.pathname}
                 onClick={() => setIsMobileMenuOpen(false)}
               />
@@ -217,7 +229,7 @@ const NavLink = ({ to, label, currentPath }) => {
 const DropdownLink = ({ to, label }) => (
   <Link
     to={to}
-    className="text-sm tracking-[0.2em] uppercase text-gray-500 hover:text-luxury-black transition-all duration-300 block w-fit mx-auto hover:opacity-70 hover:scale-105"
+    className="text-sm tracking-wide uppercase text-gray-500 hover:text-luxury-black transition-all duration-300 block w-fit mx-auto hover:opacity-70 hover:scale-105"
   >
     {label}
   </Link>
@@ -230,7 +242,7 @@ const MobileNavLink = ({ to, label, currentPath, onClick }) => {
     <Link
       to={to}
       onClick={onClick}
-      className={`text-sm tracking-widest uppercase transition-colors duration-300 ${
+      className={`text-sm tracking-wide uppercase transition-colors duration-300 ${
         isActive ? "text-luxury-black font-medium" : "text-gray-500"
       }`}
     >

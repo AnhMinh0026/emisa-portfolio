@@ -81,6 +81,8 @@ const MasonryGallery = ({
               src={optimizeCloudinaryUrl(image.url, 600, 85)}
               alt={image.id}
               className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500" />
           </motion.div>

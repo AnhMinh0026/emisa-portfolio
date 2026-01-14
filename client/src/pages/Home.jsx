@@ -5,8 +5,8 @@ import { optimizeCloudinaryUrl } from "../utils/cloudinary";
 import { motion } from "framer-motion";
 
 const Home = () => {
-  // Fetch images from beauty category for the carousel
-  const { images, loading } = useImages("beauty");
+  // Fetch images from home category for the carousel
+  const { images, loading } = useImages("home");
   const [selectedId, setSelectedId] = React.useState(null);
   const [showWelcomeModal, setShowWelcomeModal] = React.useState(false);
 
@@ -56,6 +56,8 @@ const Home = () => {
                       src={optimizeCloudinaryUrl(img.url, 800, 85)}
                       alt="Portfolio"
                       className="w-full h-full object-cover transition-transform duration-1000 ease-in-out hover:scale-110"
+                      fetchPriority={index === 0 ? "high" : "auto"}
+                      loading={index === 0 ? "eager" : "lazy"}
                     />
                   </div>
                 ))}
@@ -70,7 +72,8 @@ const Home = () => {
         )}
       </main>
 
-      <footer className="w-full py-4 bg-white text-center">
+      {/* Footer - Hidden on mobile, shown on desktop */}
+      <footer className="hidden md:flex w-full py-4 bg-white items-center justify-center">
         <p className="text-[10px] tracking-widest text-gray-400 uppercase">
           Copyright © All rights reserved.
         </p>
@@ -94,7 +97,7 @@ const Home = () => {
                     100% { transform: translateX(-50%); } 
                 }
                 .animate-scroll {
-                    animation: scroll 480s linear infinite;
+                    animation: scroll 280s linear infinite;
                 }
             `}</style>
     </div>
@@ -237,7 +240,7 @@ const FadeCarousel = ({ images, onImageClick }) => {
   React.useEffect(() => {
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % images.length);
-    }, 6000);
+    }, 4000);
 
     return () => clearInterval(timer);
   }, [images.length]);
@@ -259,12 +262,13 @@ const FadeCarousel = ({ images, onImageClick }) => {
             src={optimizeCloudinaryUrl(img.url, 800, 85)}
             alt="Portfolio"
             className="w-full h-full object-cover"
+            loading={index === 0 ? "eager" : "lazy"}
           />
         </motion.div>
       ))}
 
       {/* Minimal dots indicator */}
-      <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-2 z-10">
+      <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 z-10">
         {images.slice(0, 10).map((_, index) => (
           <div
             key={index}
@@ -273,6 +277,13 @@ const FadeCarousel = ({ images, onImageClick }) => {
             }`}
           />
         ))}
+      </div>
+
+      {/* Mobile Footer Overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-white py-4 z-10">
+        <p className="text-[10px] tracking-widest text-gray-400 uppercase text-center">
+          Copyright © All rights reserved.
+        </p>
       </div>
     </div>
   );

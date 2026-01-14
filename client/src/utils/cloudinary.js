@@ -24,7 +24,8 @@ export const optimizeCloudinaryUrl = (url, width = null, quality = 85) => {
   // Build transformation string
   const transforms = [];
   transforms.push('f_auto'); // Auto format (WebP/AVIF)
-  transforms.push(`q_${quality}`); // Quality
+  transforms.push('q_auto:good'); // Smart quality balancing
+  transforms.push('dpr_auto'); // Auto device pixel ratio
   transforms.push('fl_progressive'); // Progressive loading
   
   if (width) {
