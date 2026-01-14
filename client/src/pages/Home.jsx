@@ -33,7 +33,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-white overflow-hidden flex flex-col">
       <Header />
-      <main className="flex-grow flex items-start pt-24 relative">
+      <main className="flex-grow flex items-start pt-19 relative">
         {loading ? (
           <div className="w-full h-full flex items-center justify-center text-luxury-black tracking-widest text-xs animate-pulse">
             LOADING GALLERY...
