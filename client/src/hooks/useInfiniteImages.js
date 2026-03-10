@@ -1,85 +1,38 @@
-import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { useEffect } from 'react';
+import useImageStore from '../store/useImageStore';
 
 /**
- * Hook for infinite scroll image loading
+ * Hook for infinite scroll image loading using Zustand
  * @param {string} category - Image category filter
  * @param {number} limit - Images per page
  */
 const useInfiniteImages = (category, limit = 10) => {
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [cursor, setCursor] = useState(null);
+  const key = category || 'all';
+  const { 
+    imagesByCategory, 
+    loadingByCategory, 
+    loadingMoreByCategory,
+    errorByCategory,
+    hasMoreByCategory,
+    fetchImages,
+    loadMoreImages
+  } = useImageStore();
 
-  // Initial load
+  const images = imagesByCategory[key] || [];
+  const error = errorByCategory[key] || null;
+  const hasMore = hasMoreByCategory[key] !== false; // Default to true if not explicitly false
+  const loadingMore = loadingMoreByCategory[key] || false;
+
   useEffect(() => {
-    const fetchInitialImages = async () => {
-      try {
-        setLoading(true);
-        setImages([]);
-        setCursor(null);
-        
-        const API_URL = import.meta.env.VITE_API_URL;
-        const url = category 
-          ? `${API_URL}/api/images?category=${category}&limit=${limit}`
-          : `${API_URL}/api/images?limit=${limit}`;
-          
-        const response = await axios.get(url);
-        
-        // Handle both old format (array) and new format (object)
-        if (Array.isArray(response.data)) {
-          setImages(response.data);
-          setHasMore(false);
-        } else {
-          setImages(response.data.images || []);
-          setCursor(response.data.nextCursor);
-          setHasMore(response.data.hasMore);
-        }
-      } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchImages(category, limit);
+  }, [category, limit, fetchImages]);
 
-    fetchInitialImages();
-  }, [category, limit]);
+  // Adjust loading state to correctly reflect either initial load or already loaded
+  const loading = imagesByCategory[key] !== undefined ? loadingByCategory[key] || false : true;
 
-  // Load more function
-  const loadMore = useCallback(async () => {
-    if (!hasMore || loadingMore) return;
-
-    try {
-      setLoadingMore(true);
-      
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      let url = category 
-        ? `${API_URL}/api/images?category=${category}&limit=${limit}`
-        : `${API_URL}/api/images?limit=${limit}`;
-      
-      if (cursor) {
-        url += `&cursor=${cursor}`;
-      }
-      
-      const response = await axios.get(url);
-      
-      if (Array.isArray(response.data)) {
-        // Old format - no more pagination
-        setHasMore(false);
-      } else {
-        setImages(prev => [...prev, ...response.data.images]);
-        setCursor(response.data.nextCursor);
-        setHasMore(response.data.hasMore);
-      }
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [category, limit, cursor, hasMore, loadingMore]);
+  const loadMore = () => {
+    loadMoreImages(category, limit);
+  };
 
   return { 
     images, 

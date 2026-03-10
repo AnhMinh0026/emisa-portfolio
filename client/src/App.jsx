@@ -13,6 +13,9 @@ import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
 import ScrollToTop from "./components/ScrollToTop";
 
+import AdminLogin from "./pages/AdminLogin";
+import AdminUpload from "./pages/AdminUpload";
+
 function AnimatedRoutes() {
   const location = useLocation();
 
@@ -30,6 +33,8 @@ function AnimatedRoutes() {
           <Route path="/gallery/:category" element={<Gallery />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/admin" element={<AdminLogin />} />
+          <Route path="/admin/upload" element={<AdminUpload />} />
         </Routes>
       </AnimatePresence>
       <ScrollToTop />
