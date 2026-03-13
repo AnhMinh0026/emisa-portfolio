@@ -173,7 +173,34 @@ app.get("/", (req, res) => {
   res.send("Makeup Portfolio API Running");
 });
 
+app.get("/api/ping", (req, res) => {
+  res.status(200).json({ status: "ok", message: "Server is awake" });
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Auto-ping mechanism to keep free hosting (Render/Railway) awake
+  // Runs every 14 minutes (14 * 60 * 1000 ms)
+  const PING_INTERVAL = 14 * 60 * 1000;
+  const http = require("http");
+  const https = require("https");
+  
+  setInterval(() => {
+    // If you have a custom domain/URL, set it in .env as SERVER_URL
+    const url = process.env.SERVER_URL ? `${process.env.SERVER_URL}/api/ping` : `http://localhost:${PORT}/api/ping`;
+    console.log(`[Auto-Ping] Pinging ${url} to prevent sleep...`);
+    
+    const client = url.startsWith("https") ? https : http;
+    client.get(url, (resp) => {
+      let data = "";
+      resp.on("data", (chunk) => { data += chunk; });
+      resp.on("end", () => {
+        console.log(`[Auto-Ping] Success: ${data}`);
+      });
+    }).on("error", (err) => {
+      console.log(`[Auto-Ping] Error: ${err.message}`);
+    });
+  }, PING_INTERVAL);
 });

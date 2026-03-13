@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import HomeImage from "../assets/HomeImage/Home1.png";
+import HomeImage from "../assets/HomeImage/Home1.webp";
 
 const Intro = () => {
   return (
