@@ -1,36 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import { motion } from "framer-motion";
+import usePricingStore from "../store/usePricingStore";
 
 const Pricing = () => {
-  const services = [
-    {
-      name: "Wedding / TVC / Quay MV / Thương mại",
-      price: "Liên hệ inbox",
-      description: " Dịch vụ đặc biệt",
-    },
-    {
-      name: "Shooting",
-      price: "500.000đ - 600.000đ",
-      description: "Makeup chụp hình studio & ngoại cảnh",
-    },
-    {
-      name: "LookBook - Special Concept",
-      price: "600.000đ - 1.000.000đ",
-      description: "Makeup theo concept riêng",
-    },
-    {
-      name: "Make up Party - Event",
-      price: "500.000đ - 2.000.000đ",
-      description: "Makeup dự tiệc, sự kiện, gala, chương trình biểu diễn",
-    },
-    {
-      name: "Tốt nghiệp - Kỷ yếu - Bưng quả",
-      price: "400.000đ",
-      description: "Makeup cho lễ tốt nghiệp, chụp ảnh kỷ yếu, bưng quả",
-    },
-  ];
+  const { services, loading, fetchServices } = usePricingStore();
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -47,27 +26,47 @@ const Pricing = () => {
           </h2>
 
           <div className="space-y-10">
-            {services.map((service, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 + 0.3 }}
-                className="flex flex-col md:flex-row justify-between items-baseline border-b border-gray-100 pb-4 hover:border-gray-300 transition-colors duration-300"
-              >
-                <div className="text-left">
-                  <h3 className="text-lg md:text-xl text-luxury-black">
-                    {service.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {service.description}
-                  </p>
+            {loading ? (
+              // Loading skeleton
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between items-baseline border-b border-gray-100 pb-4"
+                >
+                  <div className="text-left space-y-2">
+                    <div className="h-5 w-48 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-3 w-64 bg-gray-100 rounded animate-pulse" />
+                  </div>
+                  <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
                 </div>
-                <div className="text-lg md:text-xl font-medium text-luxury-black tracking-widest mt-2 md:mt-0">
-                  {service.price}
-                </div>
-              </motion.div>
-            ))}
+              ))
+            ) : services.length === 0 ? (
+              <p className="text-gray-400 text-sm italic">Đang cập nhật bảng giá...</p>
+            ) : (
+              services.map((service, index) => (
+                <motion.div
+                  key={service._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 + 0.3 }}
+                  className="flex flex-col md:flex-row justify-between items-baseline border-b border-gray-100 pb-4 hover:border-gray-300 transition-colors duration-300"
+                >
+                  <div className="text-left">
+                    <h3 className="text-lg md:text-xl text-luxury-black">
+                      {service.name}
+                    </h3>
+                    {service.description && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {service.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-lg md:text-xl font-medium text-luxury-black tracking-widest mt-2 md:mt-0">
+                    {service.price}
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
 
           <div className="pt-16 text-sm text-gray-600 space-y-3">

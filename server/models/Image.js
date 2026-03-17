@@ -18,7 +18,6 @@ const imageSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ["beauty", "bridal", "event", "commercial", "lookbook", "graduation"],
   },
   layout: {
     type: Number,

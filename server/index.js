@@ -9,6 +9,8 @@ const multer = require("multer");
 const mongoose = require("mongoose");
 const { verifyToken } = require("./middleware/auth");
 const Image = require("./models/Image");
+const Pricing = require("./models/Pricing");
+const Category = require("./models/Category");
 
 dotenv.config();
 
@@ -179,6 +181,71 @@ app.post("/api/images/upload", verifyToken, upload.single("image"), (req, res) =
   }
 });
 
+// Replace image (admin only) - delete old from cloudinary, upload new
+app.patch("/api/images/:id/replace", verifyToken, upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No image file provided" });
+
+    const img = await Image.findById(req.params.id);
+    if (!img) return res.status(404).json({ error: "Image not found" });
+
+    // Delete old from Cloudinary
+    await cloudinary.uploader.destroy(img.cloudinaryId);
+
+    // Upload new to same folder
+    const folder = `makeup/${img.category}`;
+    const stream = cloudinary.uploader.upload_stream(
+      { folder },
+      async (error, result) => {
+        if (error) {
+          console.error("Cloudinary Replace Error:", error);
+          return res.status(500).json({ error: "Failed to upload replacement to Cloudinary" });
+        }
+        try {
+          img.cloudinaryId = result.public_id;
+          img.url = result.secure_url;
+          img.width = result.width;
+          img.height = result.height;
+          await img.save();
+
+          res.json({
+            _id: img._id,
+            id: result.public_id,
+            url: result.secure_url,
+            width: result.width,
+            height: result.height,
+            category: img.category,
+            layout: img.layout,
+            groupId: img.groupId,
+            isHome: img.isHome,
+          });
+        } catch (dbErr) {
+          console.error("DB Update Error:", dbErr);
+          res.status(500).json({ error: "Failed to update image in database" });
+        }
+      }
+    );
+    stream.end(req.file.buffer);
+  } catch (error) {
+    console.error("Replace Route Error:", error);
+    res.status(500).json({ error: "Internal server error during replace" });
+  }
+});
+
+// Toggle isHome (admin only)
+app.patch("/api/images/:id/toggle-home", verifyToken, async (req, res) => {
+  try {
+    const img = await Image.findById(req.params.id);
+    if (!img) return res.status(404).json({ error: "Image not found" });
+    img.isHome = !img.isHome;
+    await img.save();
+    res.json({ _id: img._id, isHome: img.isHome });
+  } catch (error) {
+    console.error("Toggle isHome Error:", error);
+    res.status(500).json({ error: "Failed to toggle isHome" });
+  }
+});
+
 // Delete Route
 app.delete("/api/images", verifyToken, async (req, res) => {
   try {
@@ -205,6 +272,131 @@ app.delete("/api/images", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Internal server error during deletion" });
   }
 });
+
+// ===================== PRICING ROUTES =====================
+
+// GET all pricing (public)
+app.get("/api/pricing", async (req, res) => {
+  try {
+    const items = await Pricing.find().sort({ order: 1, createdAt: 1 });
+    res.json(items);
+  } catch (error) {
+    console.error("Pricing Fetch Error:", error);
+    res.status(500).json({ error: "Failed to fetch pricing" });
+  }
+});
+
+// POST create pricing (admin only)
+app.post("/api/pricing", verifyToken, async (req, res) => {
+  try {
+    const { name, description, price, order } = req.body;
+    if (!name || !price) {
+      return res.status(400).json({ error: "Name and price are required" });
+    }
+    const newItem = new Pricing({ name, description, price, order: order || 0 });
+    await newItem.save();
+    res.status(201).json(newItem);
+  } catch (error) {
+    console.error("Pricing Create Error:", error);
+    res.status(500).json({ error: "Failed to create pricing item" });
+  }
+});
+
+// PUT update pricing (admin only)
+app.put("/api/pricing/:id", verifyToken, async (req, res) => {
+  try {
+    const { name, description, price, order } = req.body;
+    const updated = await Pricing.findByIdAndUpdate(
+      req.params.id,
+      { name, description, price, order },
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ error: "Pricing item not found" });
+    res.json(updated);
+  } catch (error) {
+    console.error("Pricing Update Error:", error);
+    res.status(500).json({ error: "Failed to update pricing item" });
+  }
+});
+
+// DELETE pricing (admin only)
+app.delete("/api/pricing/:id", verifyToken, async (req, res) => {
+  try {
+    const deleted = await Pricing.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Pricing item not found" });
+    res.json({ message: "Deleted successfully", id: req.params.id });
+  } catch (error) {
+    console.error("Pricing Delete Error:", error);
+    res.status(500).json({ error: "Failed to delete pricing item" });
+  }
+});
+
+// ===================== CATEGORY ROUTES =====================
+
+// GET all categories (public)
+app.get("/api/categories", async (req, res) => {
+  try {
+    const items = await Category.find().sort({ order: 1, createdAt: 1 });
+    res.json(items);
+  } catch (error) {
+    console.error("Category Fetch Error:", error);
+    res.status(500).json({ error: "Failed to fetch categories" });
+  }
+});
+
+// POST create category (admin only)
+app.post("/api/categories", verifyToken, async (req, res) => {
+  try {
+    const { name, slug, order } = req.body;
+    if (!name || !slug) {
+      return res.status(400).json({ error: "Name and slug are required" });
+    }
+    const existing = await Category.findOne({ slug: slug.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({ error: "Slug already exists" });
+    }
+    const newCat = new Category({ name, slug: slug.toLowerCase(), order: order || 0 });
+    await newCat.save();
+    res.status(201).json(newCat);
+  } catch (error) {
+    console.error("Category Create Error:", error);
+    res.status(500).json({ error: "Failed to create category" });
+  }
+});
+
+// PUT update category (admin only)
+app.put("/api/categories/:id", verifyToken, async (req, res) => {
+  try {
+    const { name, slug, order } = req.body;
+    if (slug) {
+      const existing = await Category.findOne({ slug: slug.toLowerCase(), _id: { $ne: req.params.id } });
+      if (existing) return res.status(400).json({ error: "Slug already exists" });
+    }
+    const updated = await Category.findByIdAndUpdate(
+      req.params.id,
+      { name, slug: slug ? slug.toLowerCase() : undefined, order },
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ error: "Category not found" });
+    res.json(updated);
+  } catch (error) {
+    console.error("Category Update Error:", error);
+    res.status(500).json({ error: "Failed to update category" });
+  }
+});
+
+// DELETE category (admin only)
+app.delete("/api/categories/:id", verifyToken, async (req, res) => {
+  try {
+    const deleted = await Category.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Category not found" });
+    res.json({ message: "Deleted successfully", id: req.params.id });
+  } catch (error) {
+    console.error("Category Delete Error:", error);
+    res.status(500).json({ error: "Failed to delete category" });
+  }
+});
+
 
 app.get("/", (req, res) => {
   res.send("Makeup Portfolio API Running");

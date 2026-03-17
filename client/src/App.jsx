@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   useLocation,
+  Navigate,
 } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import Intro from "./pages/Intro";
@@ -14,12 +15,14 @@ import Contact from "./pages/Contact";
 import ScrollToTop from "./components/ScrollToTop";
 
 import AdminLogin from "./pages/AdminLogin";
-import AdminUpload from "./pages/AdminUpload";
+import AdminLayout from "./components/AdminLayout";
+import AdminImages from "./pages/AdminImages";
+import AdminPricing from "./pages/AdminPricing";
+import AdminCategories from "./pages/AdminCategories";
 
 function AnimatedRoutes() {
   const location = useLocation();
 
-  // Scroll to top on route change
   React.useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
@@ -34,7 +37,15 @@ function AnimatedRoutes() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/admin" element={<AdminLogin />} />
-          <Route path="/admin/upload" element={<AdminUpload />} />
+
+          {/* Admin Dashboard - nested routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="images" element={<AdminImages />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="pricing" element={<AdminPricing />} />
+            {/* Redirect /admin/upload cũ -> /admin/images */}
+            <Route path="upload" element={<Navigate to="/admin/images" replace />} />
+          </Route>
         </Routes>
       </AnimatePresence>
       <ScrollToTop />

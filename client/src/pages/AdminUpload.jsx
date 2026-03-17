@@ -5,6 +5,7 @@ import useAuthStore from "../store/useAuthStore";
 import Header from "../components/Header";
 import useImageStore from "../store/useImageStore";
 import AdminImageGrid from "../components/AdminImageGrid";
+import usePricingStore from "../store/usePricingStore";
 
 const AdminUpload = () => {
   const [layout, setLayout] = useState(1);
@@ -15,6 +16,14 @@ const AdminUpload = () => {
   const [status, setStatus] = useState({ type: "", message: "" });
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+
+  // Pricing state
+  const { services, loading: pricingLoading, refreshServices, addService, updateService, deleteService } = usePricingStore();
+  const [pricingForm, setPricingForm] = useState({ name: "", description: "", price: "", order: 0 });
+  const [editingPricing, setEditingPricing] = useState(null); // null = add mode, object = edit mode
+  const [pricingStatus, setPricingStatus] = useState({ type: "", message: "" });
+  const [pricingSubmitting, setPricingSubmitting] = useState(false);
+  const [deletingPricingId, setDeletingPricingId] = useState(null);
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const token = useAuthStore((state) => state.token);
@@ -44,8 +53,9 @@ const AdminUpload = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchImages(category, 50); // Fetch a good chunk for the grid
+      refreshServices();
     }
-  }, [category, isAuthenticated, fetchImages]);
+  }, [category, isAuthenticated, fetchImages, refreshServices]);
 
   const currentImages = imagesByCategory[category] || [];
   const isLoadingImages = loadingByCategory[category];
@@ -190,6 +200,53 @@ const AdminUpload = () => {
       }
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // ===== PRICING HANDLERS =====
+  const handlePricingSubmit = async (e) => {
+    e.preventDefault();
+    if (!pricingForm.name || !pricingForm.price) {
+      setPricingStatus({ type: "error", message: "Tên và giá là bắt buộc." });
+      return;
+    }
+    setPricingSubmitting(true);
+    setPricingStatus({ type: "", message: "" });
+    try {
+      if (editingPricing) {
+        await updateService(editingPricing._id, pricingForm, token);
+        setPricingStatus({ type: "success", message: "Đã cập nhật dịch vụ!" });
+      } else {
+        await addService(pricingForm, token);
+        setPricingStatus({ type: "success", message: "Đã thêm dịch vụ mới!" });
+      }
+      setPricingForm({ name: "", description: "", price: "", order: 0 });
+      setEditingPricing(null);
+    } catch (err) {
+      if (err.response?.status === 401) logout();
+      else setPricingStatus({ type: "error", message: err.response?.data?.error || "Lỗi. Vui lòng thử lại." });
+    } finally {
+      setPricingSubmitting(false);
+    }
+  };
+
+  const handlePricingEdit = (item) => {
+    setEditingPricing(item);
+    setPricingForm({ name: item.name, description: item.description || "", price: item.price, order: item.order || 0 });
+    setPricingStatus({ type: "", message: "" });
+  };
+
+  const handlePricingDelete = async (id) => {
+    if (!window.confirm("Xóa dịch vụ này?")) return;
+    setDeletingPricingId(id);
+    try {
+      await deleteService(id, token);
+      setPricingStatus({ type: "success", message: "Đã xóa dịch vụ!" });
+    } catch (err) {
+      if (err.response?.status === 401) logout();
+      else setPricingStatus({ type: "error", message: "Xóa thất bại." });
+    } finally {
+      setDeletingPricingId(null);
     }
   };
 
@@ -380,6 +437,131 @@ const AdminUpload = () => {
               deletingId={deletingId}
             />
           </div>
+
+          {/* ===== PRICING MANAGEMENT SECTION ===== */}
+          <div className="border-t border-gray-200 pt-8">
+            <h2 className="text-sm font-medium text-luxury-black uppercase tracking-widest mb-6">
+              Quản lý Bảng Giá
+            </h2>
+
+            {pricingStatus.message && (
+              <div className={`p-3 text-sm text-center border mb-4 ${
+                pricingStatus.type === "error"
+                  ? "bg-red-50 text-red-500 border-red-100"
+                  : "bg-green-50 text-green-600 border-green-100"
+              }`}>
+                {pricingStatus.message}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* FORM ADD/EDIT */}
+              <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-sm">
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-4 border-b pb-2">
+                  {editingPricing ? "✏️ Chỉnh sửa dịch vụ" : "+ Thêm dịch vụ mới"}
+                </h3>
+                <form onSubmit={handlePricingSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1">Tên dịch vụ *</label>
+                    <input
+                      type="text"
+                      value={pricingForm.name}
+                      onChange={(e) => setPricingForm({ ...pricingForm, name: e.target.value })}
+                      placeholder="VD: Shooting"
+                      className="w-full border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1">Mô tả</label>
+                    <input
+                      type="text"
+                      value={pricingForm.description}
+                      onChange={(e) => setPricingForm({ ...pricingForm, description: e.target.value })}
+                      placeholder="VD: Makeup chụp hình studio & ngoại cảnh"
+                      className="w-full border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1">Giá *</label>
+                    <input
+                      type="text"
+                      value={pricingForm.price}
+                      onChange={(e) => setPricingForm({ ...pricingForm, price: e.target.value })}
+                      placeholder="VD: 500.000đ - 600.000đ"
+                      className="w-full border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1">Thứ tự hiển thị</label>
+                    <input
+                      type="number"
+                      value={pricingForm.order}
+                      onChange={(e) => setPricingForm({ ...pricingForm, order: Number(e.target.value) })}
+                      className="w-full border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="submit"
+                      disabled={pricingSubmitting}
+                      className="flex-1 bg-black text-white px-4 py-2 text-xs tracking-widest uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    >
+                      {pricingSubmitting ? "Đang lưu..." : editingPricing ? "Cập nhật" : "Thêm mới"}
+                    </button>
+                    {editingPricing && (
+                      <button
+                        type="button"
+                        onClick={() => { setEditingPricing(null); setPricingForm({ name: "", description: "", price: "", order: 0 }); }}
+                        className="px-4 py-2 text-xs tracking-widest uppercase border border-gray-300 text-gray-600 hover:border-black transition-colors"
+                      >
+                        Hủy
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              {/* CURRENT LIST */}
+              <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-sm">
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-4 border-b pb-2">
+                  Danh sách hiện tại ({services.length})
+                </h3>
+                {pricingLoading ? (
+                  <p className="text-xs text-gray-400">Đang tải...</p>
+                ) : services.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">Chưa có dịch vụ nào.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {services.map((item) => (
+                      <div key={item._id} className="flex justify-between items-start border-b border-gray-50 pb-3">
+                        <div className="flex-1 mr-3">
+                          <p className="text-sm font-medium text-luxury-black">{item.name}</p>
+                          {item.description && <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>}
+                          <p className="text-xs text-gray-600 mt-0.5 font-medium">{item.price}</p>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => handlePricingEdit(item)}
+                            className="text-xs px-2 py-1 border border-gray-200 text-gray-600 hover:border-black hover:text-black transition-colors"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => handlePricingDelete(item._id)}
+                            disabled={deletingPricingId === item._id}
+                            className="text-xs px-2 py-1 border border-red-100 text-red-400 hover:border-red-400 hover:text-red-600 transition-colors disabled:opacity-40"
+                          >
+                            {deletingPricingId === item._id ? "..." : "Xóa"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>

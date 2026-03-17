@@ -1,11 +1,18 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import useCategoryStore from "../store/useCategoryStore";
 
 const Header = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isMobileWorkOpen, setIsMobileWorkOpen] = React.useState(false);
+
+  const { categories, fetchCategories } = useCategoryStore();
+
+  React.useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-white/95 backdrop-blur-sm border-b border-transparent hover:border-gray-100 transition-all duration-300">
@@ -44,24 +51,13 @@ const Header = () => {
               `}
             >
               <div className="bg-white border border-gray-100 shadow-xl p-6 min-w-[400px] flex flex-col space-y-4 text-center">
-                <DropdownLink to="/gallery/beauty" label="Trang điểm cá nhân" />
-                <DropdownLink to="/gallery/bridal" label="Trang điểm Cô dâu" />
-                <DropdownLink
-                  to="/gallery/event"
-                  label="Trang điểm Sự kiện – Dạ tiệc"
-                />
-                <DropdownLink
-                  to="/gallery/commercial"
-                  label="Trang điểm Thương mại – Truyền thông"
-                />
-                <DropdownLink
-                  to="/gallery/lookbook"
-                  label="Trang điểm Lookbook – Concept"
-                />
-                <DropdownLink
-                  to="/gallery/graduation"
-                  label="Trang điểm Tốt nghiệp – Kỷ yếu"
-                />
+                {categories.length === 0 ? (
+                  <span className="text-xs text-gray-400">Đang tải...</span>
+                ) : (
+                  categories.map((cat) => (
+                    <DropdownLink key={cat._id} to={`/gallery/${cat.slug}`} label={cat.name} />
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -147,42 +143,19 @@ const Header = () => {
                 isMobileWorkOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
               }`}
             >
-              <MobileNavLink
-                to="/gallery/beauty"
-                label="Trang điểm cá nhân"
-                currentPath={location.pathname}
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <MobileNavLink
-                to="/gallery/bridal"
-                label="Trang điểm Cô dâu"
-                currentPath={location.pathname}
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <MobileNavLink
-                to="/gallery/event"
-                label="Trang điểm Sự kiện – Dạ tiệc"
-                currentPath={location.pathname}
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <MobileNavLink
-                to="/gallery/commercial"
-                label="Trang điểm Thương mại – Truyền thông"
-                currentPath={location.pathname}
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <MobileNavLink
-                to="/gallery/lookbook"
-                label="Trang điểm Lookbook – Concept"
-                currentPath={location.pathname}
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <MobileNavLink
-                to="/gallery/graduation"
-                label="Trang điểm Tốt nghiệp – Kỷ yếu"
-                currentPath={location.pathname}
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
+              {categories.length === 0 ? (
+                <span className="text-xs text-gray-400 pl-4">Đang tải...</span>
+              ) : (
+                categories.map((cat) => (
+                  <MobileNavLink
+                    key={cat._id}
+                    to={`/gallery/${cat.slug}`}
+                    label={cat.name}
+                    currentPath={location.pathname}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  />
+                ))
+              )}
             </div>
           </div>
 

@@ -26,7 +26,7 @@ const AdminLogin = () => {
       });
 
       login(response.data.token);
-      navigate("/admin/upload");
+      navigate("/admin/images");
     } catch (err) {
       setError(err.response?.data?.error || "Failed to login");
     } finally {
