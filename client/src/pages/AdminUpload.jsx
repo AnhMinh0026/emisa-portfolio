@@ -7,9 +7,11 @@ import useImageStore from "../store/useImageStore";
 import AdminImageGrid from "../components/AdminImageGrid";
 
 const AdminUpload = () => {
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [layout, setLayout] = useState(1);
+  const [files, setFiles] = useState([null, null, null]);
+  const [previews, setPreviews] = useState([null, null, null]);
   const [category, setCategory] = useState("beauty");
+  const [isHome, setIsHome] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -48,16 +50,35 @@ const AdminUpload = () => {
   const currentImages = imagesByCategory[category] || [];
   const isLoadingImages = loadingByCategory[category];
 
-  const handleFileChange = (e) => {
+  const handleLayoutChange = (newLayout) => {
+    setLayout(newLayout);
+    // Truncate files if switching to a smaller layout
+    const newFiles = [...files];
+    const newPreviews = [...previews];
+    for (let i = newLayout; i < 3; i++) {
+        newFiles[i] = null;
+        newPreviews[i] = null;
+    }
+    setFiles(newFiles);
+    setPreviews(newPreviews);
+  };
+
+  const handleFileChange = (index, e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
       if (!selectedFile.type.startsWith("image/")) {
         setStatus({ type: "error", message: "Please select an image file." });
         return;
       }
-      setFile(selectedFile);
+      const newFiles = [...files];
+      newFiles[index] = selectedFile;
+      setFiles(newFiles);
+
       const objectUrl = URL.createObjectURL(selectedFile);
-      setPreview(objectUrl);
+      const newPreviews = [...previews];
+      newPreviews[index] = objectUrl;
+      setPreviews(newPreviews);
+      
       setStatus({ type: "", message: "" });
     }
   };
@@ -84,30 +105,40 @@ const AdminUpload = () => {
   const handleUpload = async (e) => {
     e.preventDefault();
 
-    if (!file) {
-      setStatus({ type: "error", message: "Please select a file to upload." });
+    const activeFiles = files.slice(0, layout);
+    if (activeFiles.some(f => f === null)) {
+      setStatus({ type: "error", message: `Please select exactly ${layout} image(s) for this layout.` });
       return;
     }
 
     setUploading(true);
     setStatus({ type: "", message: "" });
 
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("category", category);
+    const groupId = Date.now().toString(); // unique ID for this upload batch
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      await axios.post(`${API_URL}/api/images/upload`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
+      const uploadPromises = activeFiles.map((file) => {
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("category", category);
+        formData.append("layout", layout);
+        formData.append("groupId", groupId);
+        formData.append("isHome", isHome);
+
+        return axios.post(`${API_URL}/api/images/upload`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        });
       });
 
-      setStatus({ type: "success", message: "Image uploaded successfully!" });
-      setFile(null);
-      setPreview(null);
+      await Promise.all(uploadPromises);
+
+      setStatus({ type: "success", message: "Images uploaded successfully!" });
+      setFiles([null, null, null]);
+      setPreviews([null, null, null]);
 
       // Auto-refresh cache
       clearStoreCache();
@@ -120,7 +151,7 @@ const AdminUpload = () => {
           type: "error",
           message:
             err.response?.data?.error ||
-            "Failed to upload image. Please try again.",
+            "Failed to upload images. Please try again.",
         });
       }
     } finally {
@@ -203,7 +234,7 @@ const AdminUpload = () => {
             {/* Upload Section (Left Panel) */}
             <div className="lg:col-span-1 bg-white p-6 shadow-sm border border-gray-100 rounded-sm self-start sticky top-24">
               <h2 className="text-sm font-medium text-luxury-black uppercase tracking-widest mb-6 border-b pb-2">
-                Upload New Image
+                Upload New Images
               </h2>
               <form onSubmit={handleUpload} className="space-y-6">
                 <div>
@@ -238,57 +269,103 @@ const AdminUpload = () => {
 
                 <div>
                   <label className="block text-xs font-medium text-gray-500 uppercase tracking-widest mb-3">
-                    Image File
+                    Display Layout
                   </label>
-                  <div className="border-2 border-dashed border-gray-300 p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors relative cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-
-                    {preview ? (
-                      <div className="space-y-3">
-                        <img
-                          src={preview}
-                          alt="Preview"
-                          className="max-h-[200px] mx-auto object-contain shadow-sm"
+                  <div className="grid grid-cols-3 gap-2">
+                    {[1, 2, 3].map((num) => (
+                      <label
+                        key={num}
+                        className={`cursor-pointer border py-2 text-center transition-all ${
+                          layout === num
+                            ? "border-black bg-black text-white"
+                            : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="layout"
+                          value={num}
+                          checked={layout === num}
+                          onChange={(e) => handleLayoutChange(Number(e.target.value))}
+                          className="hidden"
                         />
-                        <p className="text-[10px] text-gray-500 truncate px-2">
-                          {file?.name}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="py-8 space-y-3">
-                        <svg
-                          className="w-8 h-8 mx-auto text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="1"
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          ></path>
-                        </svg>
-                        <div className="text-gray-500 text-xs">
-                          Click to select
-                        </div>
-                      </div>
-                    )}
+                        <span className="text-xs tracking-widest uppercase">
+                          {num} {num === 1 ? 'Ảnh' : 'Ảnh'}
+                        </span>
+                      </label>
+                    ))}
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-widest mb-3">
+                    Images ({layout})
+                  </label>
+                  <div className="space-y-4">
+                    {Array.from({ length: layout }).map((_, i) => (
+                      <div key={i} className="border-2 border-dashed border-gray-300 p-4 text-center bg-gray-50 hover:bg-gray-100 transition-colors relative cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(i, e)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        {previews[i] ? (
+                          <div className="space-y-2">
+                            <img
+                              src={previews[i]}
+                              alt={`Preview ${i}`}
+                              className="max-h-[120px] mx-auto object-contain shadow-sm"
+                            />
+                            <p className="text-[10px] text-gray-500 truncate px-2">
+                              {files[i]?.name}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="py-4 space-y-2">
+                            <svg
+                              className="w-6 h-6 mx-auto text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="1"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              ></path>
+                            </svg>
+                            <div className="text-gray-500 text-xs">
+                              Click to select image {i + 1}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="isHome"
+                      checked={isHome}
+                      onChange={(e) => setIsHome(e.target.checked)}
+                      className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black cursor-pointer"
+                    />
+                    <label htmlFor="isHome" className="text-sm font-medium text-luxury-black tracking-wide cursor-pointer">
+                      Hiển thị bộ ảnh trên Trang chủ (Home)
+                    </label>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100">
                   <button
                     type="submit"
-                    disabled={uploading || !file}
+                    disabled={uploading}
                     className="w-full bg-black text-white px-6 py-3 text-xs tracking-widest uppercase hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {uploading ? "Uploading..." : "Upload Image"}
+                    {uploading ? "Uploading..." : `Upload ${layout} Image(s)`}
                   </button>
                 </div>
               </form>

@@ -6,7 +6,9 @@ const dotenv = require("dotenv");
 const cloudinary = require("cloudinary").v2;
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const mongoose = require("mongoose");
 const { verifyToken } = require("./middleware/auth");
+const Image = require("./models/Image");
 
 dotenv.config();
 
@@ -20,6 +22,12 @@ const upload = multer({ storage: storage });
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// MongoDB Config
+mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/emisa_db")
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.log("MongoDB connection error:", err));
+
 
 // Cloudinary Config
 cloudinary.config({
@@ -50,89 +58,115 @@ app.post("/api/auth/login", (req, res) => {
 // Routes
 app.get("/api/images", async (req, res) => {
   try {
-    const { category, page = 1, limit = 10 } = req.query;
+    const { category, page = 1, limit = 10, cursor } = req.query;
     
     // Convert to numbers
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     
-    let expression = "folder:makeup/*";
-    if (category) {
-      expression = `folder:makeup/${category}/*`;
+    let query = {};
+    if (category === "home") {
+      query.isHome = true;
+    } else if (category && category !== "all") {
+      query.category = category;
     }
 
-    // Cloudinary pagination using max_results and next_cursor
-    const { resources, next_cursor } = await cloudinary.search
-      .expression(expression)
-      .sort_by("public_id", "desc")
-      .max_results(limitNum)
-      .next_cursor(req.query.cursor || null) // Use cursor for pagination
-      .execute();
+    // simple pagination via cursor (createdAt)
+    if (cursor) {
+      query.createdAt = { $lt: new Date(cursor) };
+    }
 
-    const formattedImages = resources.map((img) => ({
-      id: img.public_id,
-      url: img.secure_url,
+    const imagesDB = await Image.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limitNum);
+
+    const hasMore = imagesDB.length === limitNum;
+    const nextCursor = hasMore ? imagesDB[imagesDB.length - 1].createdAt.toISOString() : null;
+
+    const formattedImages = imagesDB.map((img) => ({
+      id: img.cloudinaryId,
+      url: img.url,
       width: img.width,
       height: img.height,
-      folder: img.folder,
+      category: img.category,
+      layout: img.layout,
+      groupId: img.groupId,
+      isHome: img.isHome,
+      _id: img._id, // Mongo ID
     }));
 
     res.json({
       images: formattedImages,
-      nextCursor: next_cursor || null,
-      hasMore: !!next_cursor,
+      nextCursor: nextCursor,
+      hasMore: hasMore,
       page: pageNum,
       limit: limitNum,
     });
   } catch (error) {
-    console.error("Cloudinary Error:", error);
-    res.status(500).json({ error: "Failed to fetch images" });
+    console.error("Database Fetch Error:", error);
+    res.status(500).json({ error: "Failed to fetch images from Database" });
   }
 });
 
 // Upload Route
 app.post("/api/images/upload", verifyToken, upload.single("image"), (req, res) => {
   try {
-    const { category } = req.body;
+    const { category, layout = 1, groupId, isHome = false } = req.body;
     
     if (!req.file) {
       return res.status(400).json({ error: "No image file provided" });
     }
 
-    if (!category) {
-      return res.status(400).json({ error: "Category is required" });
+    if (!category || !groupId) {
+      return res.status(400).json({ error: "Category and groupId are required" });
     }
 
-    const folderMap = {
-      beauty: "makeup/beauty",
-      bridal: "makeup/bridal",
-      event: "makeup/event",
-      fashion: "makeup/fashion",
-    };
-
-    const targetFolder = folderMap[category.toLowerCase()];
-    if (!targetFolder) {
-      return res.status(400).json({ error: "Invalid category" });
-    }
+    // Support flexible folder routing initially
+    let targetFolder = `makeup/${category.toLowerCase()}`;
+    if (category === "home") targetFolder = "makeup/home";
 
     // Use upload_stream to upload memory buffer from multer to Cloudinary
     const stream = cloudinary.uploader.upload_stream(
       { folder: targetFolder },
-      (error, result) => {
+      async (error, result) => {
         if (error) {
           console.error("Cloudinary Upload Error:", error);
           return res.status(500).json({ error: "Failed to upload image to Cloudinary" });
         }
-        res.status(200).json({
-          message: "Upload successful",
-          image: {
-            id: result.public_id,
+        
+        // Save to Database
+        try {
+          const newImage = new Image({
+            cloudinaryId: result.public_id,
             url: result.secure_url,
             width: result.width,
             height: result.height,
-            folder: result.folder,
-          },
-        });
+            category: category.toLowerCase(),
+            layout: Number(layout),
+            groupId: String(groupId),
+            isHome: isHome === 'true' || isHome === true,
+          });
+
+          await newImage.save();
+
+          res.status(200).json({
+            message: "Upload successful",
+            image: {
+              id: result.public_id,
+              url: result.secure_url,
+              width: result.width,
+              height: result.height,
+              category: newImage.category,
+              layout: newImage.layout,
+              groupId: newImage.groupId,
+              isHome: newImage.isHome,
+            },
+          });
+        } catch (dbError) {
+          console.error("DB Save Error:", dbError);
+          // Optional: You could delete the cloudinary image here if DB save fails
+          return res.status(500).json({ error: "Failed to save image metadata to database" });
+        }
       }
     );
 
@@ -148,19 +182,22 @@ app.post("/api/images/upload", verifyToken, upload.single("image"), (req, res) =
 // Delete Route
 app.delete("/api/images", verifyToken, async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id } = req.body; // Using cloudinaryId
     
     if (!id) {
       return res.status(400).json({ error: "Image ID is required" });
     }
 
     // Cloudinary destroy method
-    const result = await cloudinary.uploader.destroy(id);
+    const cloudinaryResult = await cloudinary.uploader.destroy(id);
 
-    if (result.result === 'ok') {
+    if (cloudinaryResult.result === 'ok' || cloudinaryResult.result === 'not found') {
+      // Remove from DB even if not found in Cloudinary (orphan protection)
+      await Image.findOneAndDelete({ cloudinaryId: id });
+      
       res.status(200).json({ message: "Image deleted successfully", id });
     } else {
-      res.status(400).json({ error: "Failed to delete image: " + result.result });
+      res.status(400).json({ error: "Failed to delete image from Cloudinary: " + cloudinaryResult.result });
     }
 
   } catch (error) {
